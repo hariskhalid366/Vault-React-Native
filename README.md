@@ -43,7 +43,7 @@ Vault is a comprehensive privacy application built with React Native. It allows 
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/yourusername/Vault.git
+    git clone https://github.com/hariskhalid366/Vault.git
     cd Vault
     ```
 
