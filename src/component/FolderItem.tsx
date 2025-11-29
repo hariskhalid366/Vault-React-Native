@@ -29,41 +29,46 @@ export const FolderItem = React.memo(
     Colors,
     onPress,
     onLongPress,
-  }: FolderItemProps) => (
-    <AnimatedTouchable
-      layout={LinearTransition}
-      entering={FadeIn.delay(index * 30)}
-      exiting={FadeOut.delay(index * 30)}
-      style={[
-        styles.touchable,
-        {
-          backgroundColor: Colors.lockButton,
-          borderWidth: isSelected ? 2 : 1,
-          borderColor: isSelected ? Colors.primary : 'transparent',
-        },
-      ]}
-      activeOpacity={0.8}
-      onPress={() => {
-        onPress && onPress(item, isSelected ?? false);
-      }}
-      onLongPress={() => {
-        onLongPress && onLongPress(item);
-      }}
-    >
-      <Icons.FolderIcon
-        strokeWidth={1.2}
-        size={ICON_SIZE}
-        color={isSelected ? Colors.primary : Colors.icons}
-      />
-      <CustomText
-        numberOfLines={1}
-        style={{ marginTop: 5 }}
-        fontFamily="Okra-Medium"
+  }: FolderItemProps) => {
+    // Cap the delay to prevent excessive waiting for items at the bottom of a long list
+    const delay = Math.min(index * 30, 300); 
+
+    return (
+      <AnimatedTouchable
+        layout={LinearTransition}
+        entering={FadeIn.delay(delay)}
+        exiting={FadeOut.delay(delay)}
+        style={[
+          styles.touchable,
+          {
+            backgroundColor: Colors.lockButton,
+            borderWidth: isSelected ? 2 : 1,
+            borderColor: isSelected ? Colors.primary : 'transparent',
+          },
+        ]}
+        activeOpacity={0.8}
+        onPress={() => {
+          onPress && onPress(item, isSelected ?? false);
+        }}
+        onLongPress={() => {
+          onLongPress && onLongPress(item);
+        }}
       >
-        {item?.name?.length > 6 ? item?.name?.slice(0, 6) + '...' : item?.name}
-      </CustomText>
-    </AnimatedTouchable>
-  ),
+        <Icons.FolderIcon
+          strokeWidth={1.2}
+          size={ICON_SIZE}
+          color={isSelected ? Colors.primary : Colors.icons}
+        />
+        <CustomText
+          numberOfLines={1}
+          style={{ marginTop: 5 }}
+          fontFamily="Okra-Medium"
+        >
+          {item?.name?.length > 6 ? item?.name?.slice(0, 6) + '...' : item?.name}
+        </CustomText>
+      </AnimatedTouchable>
+    );
+  },
 );
 
 const styles = StyleSheet.create({

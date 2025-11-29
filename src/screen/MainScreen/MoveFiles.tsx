@@ -24,11 +24,11 @@ const MoveFiles = ({ route }: any) => {
     } catch (err) {
       console.log('Error reading folders:', err);
     }
-  }, [vaultPath]);
+  }, [vaultPath, currentFolder]);
 
   useEffect(() => {
     loadFolders();
-  }, [currentFolder]);
+  }, [loadFolders]);
 
   const movePickedFileToVault = useCallback(
     async (destinationFolderPath: string) => {
@@ -42,6 +42,15 @@ const MoveFiles = ({ route }: any) => {
           console.log(fileName);
 
           const destinationPath = `${destinationFolderPath}/${fileName}`;
+          
+          // Check if file already exists to avoid overwrite or error
+          const exists = await RNFS.exists(destinationPath);
+          if (exists) {
+              console.log(`File ${fileName} already exists in destination.`);
+              // Optional: Rename or skip. For now, we'll skip or overwrite depending on requirement. 
+              // RNFS.moveFile might fail if exists. Let's try to move and catch specific error if needed.
+          }
+
           await RNFS.moveFile(files[i], destinationPath);
 
           setProgress((i + 1) / files.length);
@@ -54,6 +63,7 @@ const MoveFiles = ({ route }: any) => {
       } catch (err) {
         console.log('❌ Error moving file:', err);
         showToast('Error moving file');
+        setProgress(0);
       }
     },
     [files, loadFolders],
@@ -68,6 +78,15 @@ const MoveFiles = ({ route }: any) => {
     [movePickedFileToVault],
   );
 
+  const renderItem = useCallback(({ item, index }: any) => (
+    <FolderItem
+      item={item}
+      index={index}
+      Colors={Colors}
+      onPress={handleFolderPress}
+    />
+  ), [Colors, handleFolderPress]);
+
   return (
     <View style={{ flex: 1 }}>
       <Header title="Move To" />
@@ -75,20 +94,13 @@ const MoveFiles = ({ route }: any) => {
       <FlatList
         contentContainerStyle={{ padding: 20 }}
         data={folders}
-        keyExtractor={(_, i) => i.toString()}
+        keyExtractor={(item) => item.path}
         numColumns={4}
         scrollEnabled={true}
         removeClippedSubviews
         windowSize={10}
         initialNumToRender={20}
-        renderItem={({ item, index }) => (
-          <FolderItem
-            item={item}
-            index={index}
-            Colors={Colors}
-            onPress={handleFolderPress}
-          />
-        )}
+        renderItem={renderItem}
       />
     </View>
   );

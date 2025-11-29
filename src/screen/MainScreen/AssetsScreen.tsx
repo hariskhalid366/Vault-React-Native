@@ -85,7 +85,7 @@ const AssetsScreen: FC = ({ route }: any) => {
     } finally {
       setIsLoadingNextPage(false);
     }
-  }, [isAlbum, name, nextCursor]);
+  }, [isAlbum, name, nextCursor, isLoading]);
 
   // Example: infinite scroll
   const handleEndReached = () => {
@@ -155,7 +155,7 @@ const AssetsScreen: FC = ({ route }: any) => {
       if (!isSelecting)
         return navigate('assetviewer', { data: assets, selectedIndex: index });
     },
-    [isSelecting, toggleSelection],
+    [isSelecting, toggleSelection, assets],
   );
 
   const handleLongPress = useCallback(
@@ -301,6 +301,24 @@ const AssetsScreen: FC = ({ route }: any) => {
     [handleExport, deleteSelectedFiles, handleMoveTo],
   );
 
+  const renderItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <AssetItem
+        index={index}
+        item={item}
+        isSelected={selectedFiles.includes(item?.path)}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+      />
+    ),
+    [selectedFiles, handlePress, handleLongPress],
+  );
+
+  const keyExtractor = useCallback(
+    (item: any, index: number) => item.id || item.path || item.uri || index.toString(),
+    [],
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <Header
@@ -334,27 +352,18 @@ const AssetsScreen: FC = ({ route }: any) => {
 
       <Animated.FlatList
         data={assets}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item, index }) => (
-          <AssetItem
-            key={(index / 100) * Math.random()}
-            index={index}
-            item={item}
-            isSelected={selectedFiles.includes(item?.path)}
-            onPress={handlePress}
-            onLongPress={handleLongPress}
-          />
-        )}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
         contentContainerStyle={styles.flatlist}
         style={{ flex: 1 }}
+        numColumns={NUM_COLUMNS}
         itemLayoutAnimation={LinearTransition}
-        initialNumToRender={30}
-        maxToRenderPerBatch={50}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
         updateCellsBatchingPeriod={50}
-        windowSize={25}
+        windowSize={10}
         removeClippedSubviews={true}
-        legacyImplementation={true}
-        scrollEventThrottle={18}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         getItemLayout={(data, index) => ({
           length: ITEM_SIZE,
@@ -406,10 +415,7 @@ export default AssetsScreen;
 
 const styles = StyleSheet.create({
   flatlist: {
-    alignItems: 'flex-start',
-    marginTop: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    paddingBottom: 100,
   },
   actionBar: {
     flexDirection: 'row',

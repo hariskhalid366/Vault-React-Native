@@ -6,6 +6,7 @@ import {
   Text,
   View,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import Header from '../../component/Header';
 import CustomText from '../../component/CustomText';
@@ -13,7 +14,8 @@ import { useColors } from '../../utils/Constants';
 import { storage } from '../../db/mmkv';
 import { useMMKVBoolean, useMMKVObject } from 'react-native-mmkv';
 import { navigate } from '../../utils/NavigationUtil';
-import WireguardModule, { AppInfo } from 'wireguard-native-bridge';
+import VpnManager from '../../utils/VpnManager';
+import { AppInfo } from 'wireguard-native-bridge';
 
 const SETTINGS_ITEMS = [
   { title: 'VPN Proxy', type: 'Vpn' },
@@ -47,63 +49,55 @@ const SettingScreen = () => {
   );
   const [backupEnabled, setBackupEnabled] = useMMKVBoolean('backup', storage);
 
-  const config = `[Interface]
-  Address = 192.168.6.189/32
-  DNS = 1.1.1.1,8.8.8.8
-  PrivateKey = 4DA0hacGx3NtnpWhB4k+S1pBH/De+WqXiLgRopo3Sk0=
-  
-[Peer]
-  PublicKey=mmSSSg1VPz8Gg7VYSgpkrYeylfAqn0m2Van+EidI11Q=
-  AllowedIPs = 0.0.0.0/0, ::/0
-  Endpoint = jp6.vpnjantit.com:1024`;
-
   useEffect(() => {
     const initVPN = async () => {
-      try {
-        const preparationResult = await WireguardModule.prepareVPN();
-        console.log('VPN Prepared:', preparationResult);
-
-        const status = await WireguardModule.getTunnelStatus();
-        setTunnelStatus(status);
-      } catch (error) {
-        console.error('Error preparing VPN:', error);
-      }
+      await VpnManager.initialize();
+      const status = await VpnManager.getStatus();
+      setTunnelStatus(status);
+      setVpnStatus(status === 'UP' ? 'connected' : 'disconnected');
     };
 
     initVPN();
   }, []);
 
-  const startVPN = async () => {
-    try {
-      const configString = config;
-      const result = await WireguardModule.startTunnel(configString);
-      console.log('Tunnel started:', result);
-
-      const status = await WireguardModule.getTunnelStatus();
-      setTunnelStatus(status);
-    } catch (error) {
-      console.error('Error starting VPN:', error);
+  const handleVpnToggle = async (value: boolean) => {
+    setLoading(true);
+    if (value) {
+      const success = await VpnManager.connect();
+      if (success) {
+        setVpnStatus('connected');
+        setTunnelStatus('UP');
+      } else {
+        Alert.alert(
+          'VPN Connection Failed',
+          'Could not connect to VPN. Would you like to open system VPN settings?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => VpnManager.openSystemSettings(),
+            },
+          ],
+        );
+        setVpnStatus('disconnected');
+        setTunnelStatus('DOWN');
+      }
+    } else {
+      const success = await VpnManager.disconnect();
+      if (success) {
+        setVpnStatus('disconnected');
+        setTunnelStatus('DOWN');
+      } else {
+        Alert.alert('Error', 'Failed to disconnect VPN');
+      }
     }
-  };
-
-  const stopVPN = async () => {
-    try {
-      await WireguardModule.stopTunnel();
-      setTunnelStatus('DOWN');
-      console.log('Tunnel stopped');
-    } catch (error) {
-      console.error('Error stopping VPN:', error);
-    }
+    setLoading(false);
   };
 
   const handleSwitchChange = useCallback(
     async (type: string, value: boolean) => {
       if (type === 'Vpn') {
-        if (value === true) {
-          await startVPN();
-        } else {
-          await stopVPN();
-        }
+        await handleVpnToggle(value);
       } else if (type === 'Theme') {
         setDarkThemeEnabled(value);
       } else if (type === 'Biometric') {
@@ -117,8 +111,6 @@ const SettingScreen = () => {
       }
     },
     [
-      startVPN,
-      stopVPN,
       setDarkThemeEnabled,
       setBiometricEnabled,
       setBackupEnabled,
@@ -184,8 +176,18 @@ const SettingScreen = () => {
           >
             VPN Status: {vpnStatus.toUpperCase()}
           </Text>
-          {loading && <ActivityIndicator size="small" color={Colors.icons} />}
+          {loading && <ActivityIndicator size="small" color={Colors.icons} style={{ marginLeft: 10 }} />}
         </View>
+        
+        {/* Fallback Button for manual access */}
+        <TouchableOpacity 
+            style={{ marginTop: 20, alignSelf: 'center' }}
+            onPress={() => VpnManager.openSystemSettings()}
+        >
+            <Text style={{ color: Colors.text, textDecorationLine: 'underline' }}>
+                Open System VPN Settings
+            </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

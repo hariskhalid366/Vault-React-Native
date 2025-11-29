@@ -1,6 +1,6 @@
 import { screenWidth } from '../utils/Constants';
 import { FasterImageView } from '@rraut/react-native-faster-image';
-import React, { FC } from 'react';
+import React, { FC, useMemo, useCallback } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -27,9 +27,21 @@ export const AssetItem: FC<AssetItemProps> = React.memo(
     const showOverlay =
       item.type === 'video/mp4' || item?.name?.includes('mp4') || isSelected;
 
+    const source = useMemo(
+      () => ({
+        resizeMode: 'cover' as any,
+        uri: item?.path ? `file://${item?.path}` : item?.uri,
+      }),
+      [item?.path, item?.uri],
+    );
+
+    const renderProgress = useCallback(
+      () => <ActivityIndicator color={'#fff'} size={'small'} />,
+      [],
+    );
+
     return (
       <TouchableOpacity
-        key={item?.uri || item?.path}
         onPress={() => {
           onPress && onPress(item, index);
         }}
@@ -58,11 +70,8 @@ export const AssetItem: FC<AssetItemProps> = React.memo(
             backgroundColor: '#1c1c1e',
           }}
           radius={item?.title ? 12 : 0}
-          onProgress={() => <ActivityIndicator color={'#fff'} size={'small'} />}
-          source={{
-            resizeMode: 'cover',
-            uri: item?.path ? `file://${item?.path}` : item?.uri,
-          }}
+          onProgress={renderProgress}
+          source={source}
         />
         {item?.title && (
           <View
