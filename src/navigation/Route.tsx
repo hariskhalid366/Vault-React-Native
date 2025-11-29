@@ -24,7 +24,7 @@ const Stack = createNativeStackNavigator();
 const Route = () => {
   const theme = useColors();
 
-  const [user] = useMMKVObject('UserData', storage);
+  const [user] = useMMKVObject<any>('UserData', storage);
 
   const appTheme = {
     ...DefaultTheme,
